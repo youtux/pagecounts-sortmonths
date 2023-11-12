@@ -64,15 +64,12 @@ def parse_rdd_in_process(rdd_path, parser):
 
 def gzip_read(file_path):
     f = subprocess.Popen(['gzip', '-cd', file_path], stdout=subprocess.PIPE)
-    w = io.TextIOWrapper(f.stdout, encoding='utf-8')
-    return w
+    return io.TextIOWrapper(f.stdout, encoding='utf-8')
 
 def gzip_write(file_path):
     out = open(file_path, 'wb')
     f = subprocess.Popen('gzip', stdout=out, stdin=subprocess.PIPE)
-    w = io.TextIOWrapper(f.stdin, encoding='utf-8')
-
-    return w
+    return io.TextIOWrapper(f.stdin, encoding='utf-8')
 
 unquote_cached = functools.lru_cache(maxsize=100000)(unquote)
 quote_cached = functools.lru_cache(maxsize=100000)(quote)
@@ -111,47 +108,22 @@ def line_parser_q(line):
 def read_rdd(rdd_path):
     for part in sorted(rdd_path.glob('part-*.gz')):
         with gzip_read(str(part)) as input_f:
-            for line in input_f:
-                yield line
+            yield from input_f
 
 def record_to_text(record):
     project, page, timestamp, counts, bytes_trans = record
 
-    return '{} {} {} {} {}\n'.format(
-        project,
-        quote(page),
-        # page,
-        # timestamp.strftime('%Y%m%d-%H%M%S'),
-        timestamp,
-        counts,
-        bytes_trans,
-    )
+    return f'{project} {quote(page)} {timestamp} {counts} {bytes_trans}\n'
 
 def record_to_text_cached(record):
     project, page, timestamp, counts, bytes_trans = record
 
-    return '{} {} {} {} {}\n'.format(
-        project,
-        quote_cached(page),
-        # page,
-        # timestamp.strftime('%Y%m%d-%H%M%S'),
-        timestamp,
-        counts,
-        bytes_trans,
-    )
+    return f'{project} {quote_cached(page)} {timestamp} {counts} {bytes_trans}\n'
 
 def record_to_text_q(record):
     project, page, timestamp, counts, bytes_trans = record
 
-    return '{} {} {} {} {}\n'.format(
-        project,
-        page,
-        # page,
-        # timestamp.strftime('%Y%m%d-%H%M%S'),
-        timestamp,
-        counts,
-        bytes_trans,
-    )
+    return f'{project} {page} {timestamp} {counts} {bytes_trans}\n'
 
 def keyby_project_page(record):
     return record[:2]
@@ -169,8 +141,7 @@ def reduce_timestamps(records):
         return (proj, page, timestamp, count_a + count_b, bytes_a + bytes_b)
 
     for _, group in itertools.groupby(records, key=keyby_timestamp):
-        aggreageted_record = functools.reduce(sum_records, group)
-        yield aggreageted_record
+        yield functools.reduce(sum_records, group)
 
 def write_from_pipe(file_path, pipe):
     records = iter(pipe.recv, StopIteration)

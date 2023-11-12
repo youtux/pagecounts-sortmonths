@@ -644,8 +644,7 @@ def merge(iterables, key=None, reverse=False):
             # fast case when only a single iterator remains
             value, order, it = h[0]
             yield value
-            for value in it:
-                yield value
+            yield from it
         return
 
     for order, it in enumerate(map(iter, iterables)):
@@ -669,8 +668,7 @@ def merge(iterables, key=None, reverse=False):
     if h:
         key_value, order, value, it = h[0]
         yield value
-        for value in it:
-            yield value
+        yield from it
 
 
 # Algorithm notes for nlargest() and nsmallest()
